@@ -6,13 +6,13 @@
 # Uses:        https://github.com/Knio/pynmea2
 # Author:      paulv
 #
-# Created:     20-07-2018
-# Copyright:   (c) paulv 2018 2019
+# Created:     11-10-2020
+# Copyright:   (c) paulv 2018 2019 2020
 # Licence:     <your licence>
 #-------------------------------------------------------------------------------
 
 import serial
-import pynmea2
+import pynmea2  # https://github.com/Knio/pynmea2 : pip install pynmea2
 from datetime import datetime, date, time, timedelta
 
 
