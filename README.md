@@ -22,8 +22,8 @@ is the bit-banging version that uses one of the GPIO ports to receive the serial
 mail_counter_log.py 
 is the scipt that emails the counter log file to my email account.
 
-gps_ser.py 
-is the monitoring script for the NEO that uses the standard (switched back) serial UART.
+gps.py 
+is a test script for monitoring the NEO that uses the standard (switched back) serial UART.
 
 Serial_gps_bb.py 
 is the NEO NMEA sentence monitoring using the bit-banging library. It uses a GPIO pin to listen to the device.
