@@ -1,2 +1,2 @@
 # GPSDO-Monitoring
-Monitoring a high precision 10MHz GPS disciplined oscillator (GPSDO)
+Monitoring, measuring and logging data from a high precision 10MHz GPS disciplined oscillator (GPSDO)
