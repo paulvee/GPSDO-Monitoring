@@ -168,15 +168,16 @@ def main():
                     pos = data_s.find('$')  # get the position of the "$"
                     # save the start of the sentence
                     str_s = right(data_s, pos)  # strip everything to the left
-
+                    if DEBUG : print(str_s)
                     # look to see if there are more "$"'s in this segment
                     # this will mess-up the NMEA sentence parsing
                     # I've only found two $'s in one segment.
-                    if str_s.count("$") > 1 :
+                    if str_s.count("$") > 1 :   # there is another one!
                         pos = str_s[1:].find('$')  # get the position of the second "$"
-                        print(pos)
-                        # save the start of the sentence
-                        str_s = right(str_s[1:], pos)  # strip everything to the left
+                        if DEBUG : print(pos)
+                        # save the start of this segment so
+                        # strip everything to the left of the second "$"
+                        str_s = right(str_s, pos+1)
                     if DEBUG: print(str_s)
 
                     # get more data segments to complete the sentence
