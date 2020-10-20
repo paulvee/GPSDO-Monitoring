@@ -30,3 +30,6 @@ is the NEO NMEA sentence monitoring using the bit-banging library. It uses a GPI
 
 mail_nmea_log.py 
 is the mail program that sends me the logs to my account.
+
+oled.py 
+is a little test program I put together from the library example for the driver. I played with the manipulation of the data and how to put that on the display.
