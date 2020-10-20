@@ -33,3 +33,7 @@ is the mail program that sends me the logs to my account.
 
 oled.py 
 is a little test program I put together from the library example for the driver. I played with the manipulation of the data and how to put that on the display.
+
+add-on counter.jpg and add-on RPi.jpg are the circuit diagrams I'm working from at the moment.
+
+Note that all these files are bound to change!
