@@ -35,5 +35,6 @@ oled.py
 is a little test program I put together from the library example for the driver. I played with the manipulation of the data and how to put that on the display.
 
 add-on counter.jpg and add-on RPi.jpg are the circuit diagrams I'm working from at the moment.
+Note that I cannot get the Raspberry Pi Zero-W wireless connection to work inside or even near the GPSDO. Version 2 of the pdf diagrams are now the next attempt.
 
 Note that all these files are bound to change!
