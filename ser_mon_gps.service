@@ -1,0 +1,21 @@
+# This service installs a Python script that monitors the gps serial TxD.
+# The script should never die, and if it does, it will be restarted.
+# If the script is restarted 4 x within 180 seconds, the Pi is rebooted.
+
+[Unit]
+Description=Installing the serial_monitor for the gps script
+
+After=network-online.target
+Wants=network-online.target systemd-networkd-wait-online.service
+
+StartLimitIntervalSec=500
+StartLimitBurst=5
+
+[Service]
+ExecStart=/usr/bin/python3.7 /home/pi/serial_bb_gps.py
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+
