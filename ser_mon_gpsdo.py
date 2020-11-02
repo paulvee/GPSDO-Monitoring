@@ -45,7 +45,7 @@ serialPort = serial.Serial(port, baudrate=9600, timeout=None)
 
 # data path is on a RAM disk to protect the SD card
 # every new day, the log file will be moved to the SD card by a cron job
-log_path = "/mnt/ramdisk/bliley.log"
+log_path = "/mnt/ramdisk/gpsdo.log"
 
 # -- Logger definitions
 LOG_FILENAME = log_path
