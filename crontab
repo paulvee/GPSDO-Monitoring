@@ -6,6 +6,6 @@ Below are my crontab additions:
 59 23 * * * /usr/bin/python2.7 /home/pi/mail_nmea_log.py
 # just after mid-night, move the now archived logs to the SD card
 # to free-up space on the ramdisk
-00 01 * * * /bin/mv -f /mnt/ramdisk/counter.log.* /home/pi/counter_log/.
-00 02 * * * /bin/mv -f /mnt/ramdisk/nmea.log.* /home/pi/nmea_log/.
-00 03 * * * /bin/mv -f /mnt/ramdisk/gpsdo.log.* /home/pi/gpsdo_log/.
+01 00 * * * /bin/mv -f /mnt/ramdisk/counter.log.* /home/pi/counter_log/.
+02 00 * * * /bin/mv -f /mnt/ramdisk/nmea.log.* /home/pi/nmea_log/.
+03 00 * * * /bin/mv -f /mnt/ramdisk/gpsdo.log.* /home/pi/gpsdo_log/.
