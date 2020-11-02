@@ -16,7 +16,7 @@ is the scipt that emails the counter log file to my email account.
 mail_nmea_log.py 
 is the mail program that sends me the logs to my account.
 
-add-on counter.jpg and add-on RPi.jpg are the circuit diagrams I'm working from at the moment.
-Note that I cannot get the Raspberry Pi Zero-W wireless connection to work inside or even near the GPSDO. Version 2 of the pdf diagrams are now the next attempt. Look at the Blog for more details.
+
+Versions of the pdf diagrams I am now working from are called V2. Look at the Blog for more details.
 
 Note that all these files are bound to change!
