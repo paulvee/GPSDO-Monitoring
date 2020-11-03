@@ -39,8 +39,6 @@ DAEMON = True   # if false, pipe the std out/error to the console
 port = "/dev/serial0"
 #port = "/dev/ttyS0"
 
-
-
 serialPort = serial.Serial(port, baudrate=9600, timeout=None)
 
 # data path is on a RAM disk to protect the SD card

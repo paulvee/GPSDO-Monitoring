@@ -7,6 +7,7 @@
 #               This code is based on Yannick's counter version 1.02
 #               Available here: https://github.com/YannickTurcotte/GPSDO-Counter
 #
+#               The systemd service file is : ser_mon_counter.service
 # Author:      paulv
 #
 # Created:     20-10-2020
@@ -195,6 +196,10 @@ def main():
     str_s = ""  # holds the string building of segments
     str_r = ""  # holds the left-over from a previous string which may contain
                 # the start of a new sentence
+
+    # create a dummy json file so the oled driver is happy
+    write_json_data(0,0,0)
+
     if DEBUG : print("start processing...")
     try:
         while True:
@@ -253,7 +258,7 @@ def main():
                         if DEBUG: print("eol position ",pos)
                         str_r = left(data_s, pos)  # use everything to the left of the eol
                         str_s = str_s +  str_r     # finish the sentence
-                        print("received string = {}".format(str_s))
+                        if DEBUG : print("received string = {}".format(str_s))
                         # create a starting timestamp so we can calculate the time
                         # left before we get the next sample
                         tstamp_s = int(time.time()/60)  # in minutes

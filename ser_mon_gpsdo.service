@@ -12,7 +12,7 @@ StartLimitIntervalSec=500
 StartLimitBurst=5
 
 [Service]
-ExecStart=/usr/bin/python3.7 /home/pi/Serial_monitor.py
+ExecStart=/usr/bin/python3.7 /home/pi/ser_mon_gpsdo.py
 Restart=on-failure
 RestartSec=5s
 
