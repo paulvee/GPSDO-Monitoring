@@ -22,12 +22,12 @@ locale.setlocale(locale.LC_ALL, '')  # Use '' for auto, or force e.g. to 'en_US.
 import json
 import os
 
-VERSION = "2.1"     # parsing changes due to counter firmware updates
+VERSION = "2.2"     # fixed bug to display sats when there is no json file
 DEBUG = True
 
 
 # data path is on a RAM disk to protect the SD card
-neo_data_path = "/mnt/ramdisk/neo.json"
+neo_data_path = "/mnt/ramdisk/nmea.json"
 counter_data_path = "/mnt/ramdisk/counter.json"
 
 # instantiate an empty dict to pick-up the data stored by the devices
@@ -45,21 +45,21 @@ draw = ImageDraw.Draw(image) # get drawing object to draw on image
 
 
 
-def read_json_neo():
-    sat_nbr = "  "
+def read_json_nmea():
+    sat_nbr = 0
     # check if the file with the data is there
     if not os.path.isfile(neo_data_path):
-        print("no neo data file")
+        if DEBUG : print("no nmea data file")
         return(sat_nbr)
 
     with open(neo_data_path, 'r') as f:
         try:
             display_data = json.load(f)
         except ValueError:
-            print("neo: ValueError from jason.load")
+            print("nmea: ValueError from jason.load")
             return(sat_nbr)
 
-    # check for the presence of the NEO data
+    # check for the presence of the NMEA data
     if "sat_nbr" in display_data.keys():
         sat_nbr = display_data["sat_nbr"]
 
@@ -74,7 +74,7 @@ def read_json_counter():
     # check if the file with the data is there
     if not os.path.isfile(counter_data_path):
         print("no counter data file")
-        return
+        return(0, 0, 0)
 
     with open(counter_data_path, 'r') as f:
         try:
@@ -90,8 +90,8 @@ def read_json_counter():
         gate = display_data["gate"]
         tstamp = display_data["tstamp"]
     else:
-        counter = ""
-        gate = ""
+        counter = 0
+        gate = 0
         tstamp = 0
 
     return(counter, gate, tstamp)
@@ -119,7 +119,7 @@ def main():
             if DEBUG : print(gate, counter_f,tstamp)
 
             # get the data from the neo file
-            sat_nbr = read_json_neo()
+            sat_nbr = read_json_nmea()
 
             # there has to be a valid digit in the string
             try:

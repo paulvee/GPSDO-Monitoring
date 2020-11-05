@@ -8,6 +8,7 @@
 #               Available here: https://github.com/YannickTurcotte/GPSDO-Counter
 #
 #               The systemd service file is : ser_mon_counter.service
+#
 # Author:      paulv
 #
 # Created:     20-10-2020
@@ -32,13 +33,17 @@ import json
 DEBUG = False
 DAEMON = True # if False, pipe the print statements to the console
 
-VERSION = "1.2"   # added processing of data
+VERSION = "1.3"     # added reset of counter chip and gate selection
 
-serial_port = 23 # GPIO port for the Counter
+serial_port = 23    # GPIO port for the Counter
+reset_port = 22     # GPIO port for the Counter reset pin
+gate_port = 25      # GPIO port for the gate time selection
 
 bol = "G"   # for the Counter or $ for the NEO
 eol = "\r"  # followed by \n
 log_file = "counter"
+
+gate = "1000"   # will be set at startup in main()
 
 # instantiate an empty dict to hold the json data
 display_data = {}
@@ -52,7 +57,7 @@ if not pi.connected:
     sleep(1)
     pi = pigpio.pi()
 
-# set the GPIO pin used for the bit-banging port
+# set the GPIO pin used for the bit-banging serial port
 pi.set_mode(serial_port, pigpio.INPUT)
 
 # data paths are on a RAM disk to protect the SD card.
@@ -109,19 +114,57 @@ def init():
     return
 
 
+def set_gate(mode=1):
+    '''
+    Setting the gate time of the counter
+    I use a little input-output trick here to conform to the 3V3 voltage levels
+    of the RPi, while the counter chip has 5V levels.
+    '''
+    global gate
+
+    if mode== 10:
+        # set gate to 10K
+        print("Setting gate to 10Ks")
+        # drive the port low
+        pi.set_mode(gate_port, pigpio.OUTPUT)
+        pi.write(gate_port, 0)
+        gate = "10000s"
+    else:
+        # set gate to 1K
+        print("Setting gate to 1Ks")
+        # set the port to hi-Z, making it high
+        pi.set_mode(gate_port, pigpio.INPUT)
+        gate = "1000s"
+
+
+def reset_counter():
+    '''
+    Reset the counter chip
+    By doing that, we start a fresh counting cycle we know the starting time
+    of, so we can correctly display the remaining number of minutes before we
+    get an update. We can also already display the gate time.
+    '''
+
+    print("Resetting the counter")
+    pi.set_mode(reset_port, pigpio.OUTPUT)
+    pi.write(reset_port, 0) # actually reset it
+    time.sleep(0.5)
+    pi.set_mode(reset_port, pigpio.INPUT) # release the port back to hi-Z
+
 
 def process_data(rcv_string, tstamp):
-    # process the string we received from the counter.
-    # This can be in the form of:
-    # - with a GPS connection:
-    # "Gate 1000s,S=12,10000000.000 Hz" or "Gate 10000s,S=12,10000000.0000 Hz"
-    # We're not using the number of satellites here, we do that differently
-    # - so without a GPS connection:
-    # "Gate 1000s,,10000000.000 Hz" or "Gate 10000s,,10000000.0000 Hz"
-    # Yannick had a version with leading zero's if number was less than 10MHz
-    # "Gate 1000s,,09999999.000 Hz" or "Gate 10000s,,09999999.0000 Hz"
-    # I asked him to remove them, but this code still handles it.
-
+    '''
+    process the string we received from the counter.
+    This can be in the form of:
+     - with a GPS connection:
+     "Gate 1000s,S=12,10000000.000 Hz" or "Gate 10000s,S=12,10000000.0000 Hz"
+     We're not using the number of satellites here, we do that differently
+     - so without a GPS connection:
+     "Gate 1000s,,10000000.000 Hz" or "Gate 10000s,,10000000.0000 Hz"
+     Yannick had a version with leading zero's if number was less than 10MHz
+     "Gate 1000s,,09999999.000 Hz" or "Gate 10000s,,09999999.0000 Hz"
+     I asked him to remove them, but this code still handles it.
+    '''
 
     # Check if we have three items in the string to avoid a ValueError
     # I saw this once when I switched from a 1K to a 10K gate time
@@ -136,17 +179,21 @@ def process_data(rcv_string, tstamp):
             count, suff = counter_s.split(" ")
             if DEBUG : print(counter_s)
         except ValueError:
-            print(counter_s)
+            print ("ValueError: {}".format(counter_s))
             return
         # save the data into a file so the display script can pick it up
         write_json_data(count, gate, tstamp)
+    else:
+        print("Error: no 3 segments to split {}".format(rcv_string))
     return
 
 
 
-def write_json_data(counter, gate, tstamp):
-    # this script saves the data into a json-encoded file that the display
-    # driver can pick-up
+def write_json_data(gate, counter, tstamp):
+    '''
+    This script saves the data into a json-encoded file that the display
+    driver can pick-up
+    '''
     global display_data
 
     # this will be piped into the log file if DAEMON = True
@@ -193,12 +240,19 @@ def main():
     pigpio.exceptions = True
     pi.bb_serial_read_open(serial_port, 9600)  # open the port, 8 bits is default
 
+    # set the gate period to 1Ks
+    set_gate(1)
+    # reset the counter chip to start a fresh cycle
+    # this means we can display the correct gate period, and we know the starting time
+    reset_counter()
+
     str_s = ""  # holds the string building of segments
     str_r = ""  # holds the left-over from a previous string which may contain
                 # the start of a new sentence
 
-    # create a dummy json file so the oled driver is happy
-    write_json_data(0,0,0)
+    # create an initial json file so the oled driver can display the initial data
+    tstamp_s = int(time.time()/60)  # in minutes
+    write_json_data(gate,0,tstamp_s)
 
     if DEBUG : print("start processing...")
     try:
