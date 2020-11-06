@@ -31,7 +31,8 @@ import json
 
 
 DEBUG = False
-DAEMON = True # if False, pipe the print statements to the console
+DAEMON = True   # if False, pipe the print statements to the console
+GATE = 1        # 1(Ks) or 10(Ks)
 
 VERSION = "1.3"     # added reset of counter chip and gate selection
 
@@ -41,9 +42,6 @@ gate_port = 25      # GPIO port for the gate time selection
 
 bol = "G"   # for the Counter or $ for the NEO
 eol = "\r"  # followed by \n
-log_file = "counter"
-
-gate = "1000"   # will be set at startup in main()
 
 # instantiate an empty dict to hold the json data
 display_data = {}
@@ -95,6 +93,20 @@ class MyLogger(object):
         return
 
 
+# string slicing & dicing helpers
+# https://stackoverflow.com/questions/22586286/python-is-there-an-equivalent-of-mid-right-and-left-from-basic
+
+def right(s, amount):
+    return s[amount:]
+
+def left(s, amount):
+    return s[:amount]
+
+def mid(s, offset, amount):
+    return s[offset-1:offset+amount-1]
+
+
+
 def init():
     global logger, handler
 
@@ -132,7 +144,7 @@ def set_gate(mode=1):
     else:
         # set gate to 1K
         print("Setting gate to 1Ks")
-        # set the port to hi-Z, making it high
+        # set the port to hi-Z, making it high due to internal pull-up
         pi.set_mode(gate_port, pigpio.INPUT)
         gate = "1000s"
 
@@ -142,7 +154,7 @@ def reset_counter():
     Reset the counter chip
     By doing that, we start a fresh counting cycle we know the starting time
     of, so we can correctly display the remaining number of minutes before we
-    get an update. We can also already display the gate time.
+    get an update. We can also display the selected gate time.
     '''
 
     print("Resetting the counter")
@@ -166,30 +178,47 @@ def process_data(rcv_string, tstamp):
      I asked him to remove them, but this code still handles it.
     '''
 
+    # did we get a startup message? "Lars DIY GPSDO Counter YT v1.03"
+    if DEBUG: print("received string = {}".format(rcv_string))
+    if "GPSDO" in rcv_string:
+        return
+
     # Check if we have three items in the string to avoid a ValueError
-    # I saw this once when I switched from a 1K to a 10K gate time
     if (len(rcv_string.split(",")) == 3):
         # separate the tree segments
         gate_s, sat, counter_s = rcv_string.split(",")
         # take off the "Gate =" part, so we're left with "1000s" or "10000s"
         gate_t, gate = gate_s.split(" ")
 
-        # take off the "Hz" part, we're not worried about the leading zero's
-        try:  # it could still be wrong
-            count, suff = counter_s.split(" ")
-            if DEBUG : print(counter_s)
-        except ValueError:
-            print ("ValueError: {}".format(counter_s))
-            return
+        # take off the "Hz" part, we're not worried about the leading zero's,
+        # but there may be a leading space
+        if (len(counter_s.split(" ")) == 3):
+            if DEBUG : print("counter_s has three elements")
+            try:  # it could still be wrong
+                spce, count, suffix = counter_s.split(" ")
+                if DEBUG : print(counter_s)
+            except ValueError:
+                print ("3 spce ValueError: {}".format(counter_s))
+                return
+        elif (len(rcv_string.split(",")) == 2):
+            if DEBUG : print("count_s has two elements")
+            try:  # it could still be wrong
+                count, suffix = counter_s.split(" ")
+                if DEBUG : print(counter_s)
+            except ValueError:
+                print ("2 spce ValueError: {}".format(counter_s))
+                return
+
         # save the data into a file so the display script can pick it up
-        write_json_data(count, gate, tstamp)
+        write_json_data(gate, count, tstamp)
     else:
         print("Error: no 3 segments to split {}".format(rcv_string))
+
     return
 
 
 
-def write_json_data(gate, counter, tstamp):
+def write_json_data(gate, count, tstamp):
     '''
     This script saves the data into a json-encoded file that the display
     driver can pick-up
@@ -198,9 +227,9 @@ def write_json_data(gate, counter, tstamp):
 
     # this will be piped into the log file if DAEMON = True
     # or to the console if not
-    print("gate\t{}\tcounter\t{}".format(gate,counter))
+    print("gate\t{}\tcounter\t{}".format(gate,count))
 
-    display_data["counter"] = counter
+    display_data["counter"] = count
     display_data["gate"] = gate
     display_data["tstamp"] = tstamp
 
@@ -212,18 +241,6 @@ def write_json_data(gate, counter, tstamp):
             return
     return
 
-
-
-# string slicing & dicing helpers
-# https://stackoverflow.com/questions/22586286/python-is-there-an-equivalent-of-mid-right-and-left-from-basic
-def right(s, amount):
-    return s[amount:]
-
-def left(s, amount):
-    return s[:amount]
-
-def mid(s, offset, amount):
-    return s[offset-1:offset+amount-1]
 
 
 def main():
@@ -240,8 +257,8 @@ def main():
     pigpio.exceptions = True
     pi.bb_serial_read_open(serial_port, 9600)  # open the port, 8 bits is default
 
-    # set the gate period to 1Ks
-    set_gate(1)
+    # set the gate period
+    set_gate(GATE)
     # reset the counter chip to start a fresh cycle
     # this means we can display the correct gate period, and we know the starting time
     reset_counter()

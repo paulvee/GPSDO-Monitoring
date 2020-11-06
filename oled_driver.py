@@ -5,6 +5,7 @@
 #               The data is coming from the Yannick 10MHz counter and the
 #               gps NEO which store the data on the ramdisk in a json format
 #
+#               the systemd script name is :  oled_driver.service
 # Author:      paulv
 #
 # Created:     06-10-2020
@@ -142,12 +143,12 @@ def main():
                 # strip the leading zeroes if any
                 counter_f = "{:,.3f}".format(counter_f).lstrip('0')
                 gate_time_s = "1Ks"
-                gate_time = int(1000/60)  # in minutes
+                gate_time = int(1000/60)  # 16 minutes
             if gate =="10000s":
                 #strip the leading zeroes if any
                 counter_f = "{:,.4f}".format(counter_f).lstrip('0')
                 gate_time_s = "10Ks"
-                gate_time = int(10000/60)  # in minutes
+                gate_time = int(10000/60)  # 166 minutes, 2.7 hrs
 
             # calculate the remaining time until the next counter update comes
             time_left = int(gate_time - (int(time.time()/60) - tstamp))
