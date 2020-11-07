@@ -173,7 +173,7 @@ def mid(s, offset, amount):
 def main():
 
     init()
-    print("Bit Banging Serial logger Version {}".format(VERSION))
+    print("Bit Banging Serial GPS logger Version {}".format(VERSION))
     if DEBUG : print("opening serial port")
     # from joan:
     # https://raspberrypi.stackexchange.com/questions/27488/pigpio-library-example-for-bit-banging-a-uart
