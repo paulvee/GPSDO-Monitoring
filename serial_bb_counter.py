@@ -7,7 +7,7 @@
 #               This code is based on Yannick's counter version 1.02
 #               Available here: https://github.com/YannickTurcotte/GPSDO-Counter
 #
-#               The systemd service file is : ser_mon_counter.service
+#               The systemd service file : ser_mon_counter.service
 #
 # Author:      paulv
 #
@@ -34,14 +34,14 @@ DEBUG = False
 DAEMON = True   # if False, pipe the print statements to the console
 GATE = 1        # 1(Ks) or 10(Ks)
 
-VERSION = "1.3"     # added reset of counter chip and gate selection
+VERSION = "1.4"     # handling start-up msg from counter and better handling of parsing issues
 
 serial_port = 23    # GPIO port for the Counter
 reset_port = 22     # GPIO port for the Counter reset pin
 gate_port = 25      # GPIO port for the gate time selection
 
-bol = "G"   # for the Counter or $ for the NEO
-eol = "\r"  # followed by \n
+bol = "G"   # beginning of line starts with "Gate"
+eol = "\r"  # end of line is "\r\n"
 
 # instantiate an empty dict to hold the json data
 display_data = {}
@@ -55,7 +55,7 @@ if not pi.connected:
     sleep(1)
     pi = pigpio.pi()
 
-# set the GPIO pin used for the bit-banging serial port
+# set the GPIO pin used for the bit-banging serial RxD port
 pi.set_mode(serial_port, pigpio.INPUT)
 
 # data paths are on a RAM disk to protect the SD card.
@@ -108,6 +108,11 @@ def mid(s, offset, amount):
 
 
 def init():
+    '''
+    Setup the logger functionality
+    Rotate at midnight and keep 31 days
+    Setup the piping of data to stdout and stderr to the logger
+    '''
     global logger, handler
 
     if DEBUG:
@@ -144,7 +149,7 @@ def set_gate(mode=1):
     else:
         # set gate to 1K
         print("Setting gate to 1Ks")
-        # set the port to hi-Z, making it high due to internal pull-up
+        # set the port to input = hi-Z, making it high due to internal pull-up
         pi.set_mode(gate_port, pigpio.INPUT)
         gate = "1000s"
 
@@ -161,7 +166,10 @@ def reset_counter():
     pi.set_mode(reset_port, pigpio.OUTPUT)
     pi.write(reset_port, 0) # actually reset it
     time.sleep(0.5)
-    pi.set_mode(reset_port, pigpio.INPUT) # release the port back to hi-Z
+    pi.set_mode(reset_port, pigpio.INPUT) # release the port back to input = hi-Z
+    # The counter sends out a start-up message, and waits a few seconds before
+    # it starts the counting process. We want to skip processing this start-up message
+    time.sleep(5)
 
 
 def process_data(rcv_string, tstamp):
@@ -175,40 +183,37 @@ def process_data(rcv_string, tstamp):
      "Gate 1000s,,10000000.000 Hz" or "Gate 10000s,,10000000.0000 Hz"
      Yannick had a version with leading zero's if number was less than 10MHz
      "Gate 1000s,,09999999.000 Hz" or "Gate 10000s,,09999999.0000 Hz"
-     I asked him to remove them, but this code still handles it.
+     With or without the leading zero, this code handles it.
     '''
-
-    # did we get a startup message? "Lars DIY GPSDO Counter YT v1.03"
-    if DEBUG: print("received string = {}".format(rcv_string))
-    if "GPSDO" in rcv_string:
-        return
+    if DEBUG: print("processing the received data {} {}".format(rcv_string, tstamp))
 
     # Check if we have three items in the string to avoid a ValueError
     if (len(rcv_string.split(",")) == 3):
         # separate the tree segments
         gate_s, sat, counter_s = rcv_string.split(",")
-        # take off the "Gate =" part, so we're left with "1000s" or "10000s"
+        # take off the "Gate " part, so we're left with "1000s" or "10000s"
         gate_t, gate = gate_s.split(" ")
 
         # take off the "Hz" part, we're not worried about the leading zero's,
-        # but there may be a leading space
-        if (len(counter_s.split(" ")) == 3):
+        # but there may be a leading space which creates another segment
+        if DEBUG : print("number of counter segments {}".format(len(counter_s.split(" "))))
+        if (len(counter_s.split(" ")) == 3): # with leading space
             if DEBUG : print("counter_s has three elements")
             try:  # it could still be wrong
                 spce, count, suffix = counter_s.split(" ")
-                if DEBUG : print(counter_s)
+                if DEBUG : print(count)
             except ValueError:
-                print ("3 spce ValueError: {}".format(counter_s))
+                print ("Error: 3 segment ValueError: {}".format(counter_s))
                 return
-        elif (len(rcv_string.split(",")) == 2):
+        elif (len(counter_s.split(" ")) == 2):  # without leading space
             if DEBUG : print("count_s has two elements")
             try:  # it could still be wrong
                 count, suffix = counter_s.split(" ")
-                if DEBUG : print(counter_s)
+                if DEBUG : print(count)
             except ValueError:
-                print ("2 spce ValueError: {}".format(counter_s))
+                print ("Error: 2 segment ValueError: {}".format(counter_s))
                 return
-
+        if DEBUG : print("counter value is {}".format(count))
         # save the data into a file so the display script can pick it up
         write_json_data(gate, count, tstamp)
     else:
@@ -227,7 +232,10 @@ def write_json_data(gate, count, tstamp):
 
     # this will be piped into the log file if DAEMON = True
     # or to the console if not
-    print("gate\t{}\tcounter\t{}".format(gate,count))
+    if DEBUG :
+        print("gate\t{}\tcounter\t{}\ttimestamp\t{}".format(gate,count, tstamp))
+    else:
+        print("gate\t{}\tcounter\t{}".format(gate,count))
 
     display_data["counter"] = count
     display_data["gate"] = gate
@@ -237,7 +245,7 @@ def write_json_data(gate, count, tstamp):
         try:
             json.dump(display_data, f)
         except ValueError:
-            print("ValueError from jason.dump")
+            print("ValueError caused by jason.dump")
             return
     return
 
@@ -247,6 +255,13 @@ def main():
 
     init()
     print("Bit Banging Serial Logger Counter - Version {}".format(VERSION))
+
+    # set the gate period
+    set_gate(GATE)
+    # reset the counter chip to start a fresh cycle
+    # this means we can display the correct gate period, and we know the starting time
+    reset_counter()
+
     if DEBUG : print("opening serial port")
     # from joan:
     # https://raspberrypi.stackexchange.com/questions/27488/pigpio-library-example-for-bit-banging-a-uart
@@ -257,19 +272,14 @@ def main():
     pigpio.exceptions = True
     pi.bb_serial_read_open(serial_port, 9600)  # open the port, 8 bits is default
 
-    # set the gate period
-    set_gate(GATE)
-    # reset the counter chip to start a fresh cycle
-    # this means we can display the correct gate period, and we know the starting time
-    reset_counter()
-
     str_s = ""  # holds the string building of segments
     str_r = ""  # holds the left-over from a previous string which may contain
                 # the start of a new sentence
 
-    # create an initial json file so the oled driver can display the initial data
-    tstamp_s = int(time.time()/60)  # in minutes
-    write_json_data(gate,0,tstamp_s)
+    # create a json file so the oled driver can display the initial data
+    tstamp_s = int(time.time()/60)+1  # 16.6 or 166.6 minutes
+    if DEBUG : print("starting with:")
+    write_json_data(gate,0,tstamp_s)  # counter display will be "0.000 Hz" or "0.0000 Hz"
 
     if DEBUG : print("start processing...")
     try:
@@ -332,7 +342,7 @@ def main():
                         if DEBUG : print("received string = {}".format(str_s))
                         # create a starting timestamp so we can calculate the time
                         # left before we get the next sample
-                        tstamp_s = int(time.time()/60)  # in minutes
+                        tstamp_s = int(time.time()/60)+1  # 16.6 or 166.6 minutes
                         # process the results and write them to a file
                         process_data(str_s, tstamp_s)
                         # save the left-over, which can be the start of a new sentence
