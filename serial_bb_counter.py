@@ -216,6 +216,7 @@ def process_data(rcv_string, tstamp):
         if DEBUG : print("counter value is {}".format(count))
         # save the data into a file so the display script can pick it up
         write_json_data(gate, count, tstamp)
+        return
     else:
         print("Error: no 3 segments to split {}".format(rcv_string))
 
