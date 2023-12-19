@@ -25,7 +25,7 @@ DEBUG = False
 log_file = "/mnt/ramdisk/gpsdo.log"
 zip_file = "/mnt/ramdisk/gpsdo.zip"
 # target email account
-mail_address = "pw.versteeg@gmail.com"
+mail_address = "your e-mail address"
 
 
 def mail_err_log():
