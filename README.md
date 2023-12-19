@@ -11,6 +11,8 @@ Here are the three scripts for the RPi:
   - ser_mon_gpsdo.service : this systemd script installs the Python script at boot time
   
   - mail_gpsdo_log.py : this is the e-mail script that is activated by cron at mid-night.
+
+  - contab : this is the crontab for all the scipts on the original project, select the ones you need for the gpsdo.
   
 
 The files I uploaded are files that work, but may still undergo changes. During this process, I will overwrite the files with a newer version, and will NOT keep the old ones here.
