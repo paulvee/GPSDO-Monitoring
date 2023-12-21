@@ -3,7 +3,7 @@ Monitoring, measuring and logging data from a high precision 10MHz GPS disciplin
 
 This project is no longer in use by me, but have a look for inspiration.
 
-I am still using an RPi (the classic model b) to monitor the output of a script that is used in the GPSDO. This script outputs a line of data every second. The TxD pin of the Nano that is used in the GPSDO is brought out and is monitored by an RPi. The RPi runs two scipts, one to capture the serial data, and a second script that runs at mid-night, compresses the log file and sends me an e-mail with the collected results. I then use Excel to plot the data in graphs that gives me an idea of the stability of the GPSDO. I use the same scripts on another RPi to collect the data from my Reciprocal Counter, that also uses an GPSDO inside as the master reference clock.
+I am still using an RPi (the classic model b) to monitor the output of a script that is used in the GPSDO. This script outputs a line of data every second. The TxD pin of the Nano that is used in the GPSDO is brought out and is monitored by an RPi. The RPi runs two scripts, one to capture the serial data, and a second script that runs at mid-night, compresses the log file and sends me an e-mail with the collected results. I then use Excel to plot the data in graphs that gives me an idea of the stability of the GPSDO. I use the same scripts on another RPi to collect the data from my Reciprocal Counter, that also uses an GPSDO inside as the master reference clock.
 Here are the three scripts for the RPi:
 
   - ser_mon_gpsdo.py  : this collects the serial pin RxD data
